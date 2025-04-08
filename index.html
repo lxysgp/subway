@@ -1,166 +1,24 @@
-<!-- Clean version: No coins or powerups on toilets -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Mew Runner: Sigma Subway Skaters</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    canvas { background: linear-gradient(#222, #111); display: block; margin: 20px auto; }
-    body { text-align: center; color: white; font-family: sans-serif; background: #000; }
-    #startBtn { padding: 10px 20px; margin-top: 10px; }
-  </style>
-</head>
-<body>
-  <h1>🐱 Mew Runner: Sigma Subway Skaters</h1>
-  <p>⬆️ to Jump | Collect 🟡 | Avoid 🚽 | Grab 🔥 🐌 🛡️</p>
-  <button id="startBtn">▶️ Start Music</button>
-  <canvas id="game" width="800" height="400"></canvas>
-  <audio id="bgMusic" loop>
-    <source src="bg.mp3" type="audio/mpeg">
-  </audio>
+function spawnPowerup() {
+  const types = ["🔥", "🐌", "🛡️"];
+  const type = types[Math.floor(Math.random() * types.length)];
 
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
-    const music = document.getElementById("bgMusic");
-    const startBtn = document.getElementById("startBtn");
+  let x = 800;
+  let safe = false;
 
-    startBtn.onclick = () => {
-      music.play();
-      startBtn.style.display = 'none';
-    };
-
-    const mew = { x: 100, y: 300, w: 40, h: 40, vy: 0, jumping: false, shield: false };
-    let gravity = 1, score = 0, highScore = localStorage.getItem("high") || 0;
-    let coins = [], toilets = [], powerups = [];
-    let speed = 5, boost = 1, powerTime = 0;
-
-    function draw(obj, emoji) {
-      ctx.font = "30px sans-serif";
-      ctx.fillText(emoji, obj.x, obj.y + 30);
-    }
-
-    function randomY(level) {
-      if (level === 'coin') return 230;       // Coin in mid-air
-      if (level === 'powerup') return 270;    // Powerup just above ground
-      return 300;                              // Ground (for toilets)
-    }
-
-    function spawnCoin() {
-      coins.push({ x: 800, y: randomY('coin'), w: 30, h: 30 });
-    }
-
-    function spawnToilet() {
-      toilets.push({ x: 800, y: 300, w: 40, h: 40 });
-    }
-
-    function spawnPowerup() {
-      const types = ["🔥", "🐌", "🛡️"];
-      const type = types[Math.floor(Math.random() * types.length)];
-      powerups.push({ x: 800, y: randomY('powerup'), w: 30, h: 30, type });
-    }
-
-    function update() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "white";
-      ctx.font = "20px sans-serif";
-      ctx.fillText(`Score: ${score}`, 10, 30);
-      ctx.fillText(`High Score: ${highScore}`, 650, 30);
-      if (mew.shield) ctx.fillText("🛡️ SHIELD!", 360, 30);
-
-      mew.vy += gravity;
-      mew.y += mew.vy;
-      if (mew.y > 300) { mew.y = 300; mew.jumping = false; }
-
-      draw(mew, "🐱");
-
-      for (let i = coins.length - 1; i >= 0; i--) {
-        const c = coins[i];
-        c.x -= speed * boost;
-        draw(c, "🟡");
-        if (c.x + c.w < 0) coins.splice(i, 1);
-        else if (checkHit(c, mew)) {
-          score++;
-          if (score > highScore) {
-            highScore = score;
-            localStorage.setItem("high", score);
-          }
-          coins.splice(i, 1);
-        }
-      }
-
-      for (let i = toilets.length - 1; i >= 0; i--) {
-        const t = toilets[i];
-        t.x -= speed * boost;
-        draw(t, "🚽");
-        if (t.x + t.w < 0) toilets.splice(i, 1);
-        else if (checkHit(t, mew)) {
-          if (mew.shield) {
-            toilets.splice(i, 1);
-            mew.shield = false;
-          } else {
-            alert("💥 You got Skibidi’d!\nFinal Score: " + score);
-            resetGame();
-            return;
-          }
-        }
-      }
-
-      for (let i = powerups.length - 1; i >= 0; i--) {
-        const p = powerups[i];
-        p.x -= speed * boost;
-        draw(p, p.type);
-        if (checkHit(p, mew)) {
-          activatePowerup(p.type);
-          powerups.splice(i, 1);
-        } else if (p.x + p.w < 0) {
-          powerups.splice(i, 1);
-        }
-      }
-
-      if (powerTime > 0) powerTime--;
-      if (powerTime === 0) {
-        boost = 1;
-        gravity = 1;
+  // Try up to 10 times to find a safe spot
+  for (let i = 0; i < 10; i++) {
+    safe = true;
+    for (const t of toilets) {
+      if (Math.abs(t.x - x) < 80) {
+        safe = false;
+        break;
       }
     }
+    if (safe) break;
+    x += 50; // try moving it a bit forward
+  }
 
-    function activatePowerup(type) {
-      if (type === "🔥") {
-        boost = 2; powerTime = 300;
-      } else if (type === "🐌") {
-        boost = 0.5; powerTime = 300;
-      } else if (type === "🛡️") {
-        mew.shield = true;
-      }
-    }
-
-    function resetGame() {
-      score = 0;
-      coins = [];
-      toilets = [];
-      powerups = [];
-      mew.shield = false;
-      speed = 5;
-    }
-
-    function checkHit(a, b) {
-      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
-    }
-
-    setInterval(update, 30);
-    setInterval(spawnCoin, 1800);
-    setInterval(spawnToilet, 3000);
-    setInterval(spawnPowerup, 6000);
-    setInterval(() => { if (speed < 12) speed += 0.1 }, 1000);
-
-    document.addEventListener("keydown", e => {
-      if (e.key === "ArrowUp" && !mew.jumping) {
-        mew.vy = -15;
-        mew.jumping = true;
-      }
-    });
-  </script>
-</body>
-</html>
+  if (safe) {
+    powerups.push({ x: x, y: 270, w: 30, h: 30, type });
+  }
+}
