@@ -1,3 +1,4 @@
+<!-- Clean version: No coins or powerups on toilets -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,7 +13,7 @@
 </head>
 <body>
   <h1>🐱 Mew Runner: Sigma Subway Skaters</h1>
-  <p>⬆️ to Jump | Collect 🟡 | Avoid 🚽 | Get 🔥 🐌 🛡️</p>
+  <p>⬆️ to Jump | Collect 🟡 | Avoid 🚽 | Grab 🔥 🐌 🛡️</p>
   <button id="startBtn">▶️ Start Music</button>
   <canvas id="game" width="800" height="400"></canvas>
   <audio id="bgMusic" loop>
@@ -23,14 +24,14 @@
     const canvas = document.getElementById("game");
     const ctx = canvas.getContext("2d");
     const music = document.getElementById("bgMusic");
-
     const startBtn = document.getElementById("startBtn");
+
     startBtn.onclick = () => {
       music.play();
       startBtn.style.display = 'none';
     };
 
-    let mew = { x: 100, y: 300, w: 40, h: 40, vy: 0, jumping: false, shield: false };
+    const mew = { x: 100, y: 300, w: 40, h: 40, vy: 0, jumping: false, shield: false };
     let gravity = 1, score = 0, highScore = localStorage.getItem("high") || 0;
     let coins = [], toilets = [], powerups = [];
     let speed = 5, boost = 1, powerTime = 0;
@@ -40,8 +41,14 @@
       ctx.fillText(emoji, obj.x, obj.y + 30);
     }
 
+    function randomY(level) {
+      if (level === 'coin') return 230;       // Coin in mid-air
+      if (level === 'powerup') return 270;    // Powerup just above ground
+      return 300;                              // Ground (for toilets)
+    }
+
     function spawnCoin() {
-      coins.push({ x: 800, y: 300, w: 30, h: 30 });
+      coins.push({ x: 800, y: randomY('coin'), w: 30, h: 30 });
     }
 
     function spawnToilet() {
@@ -50,8 +57,8 @@
 
     function spawnPowerup() {
       const types = ["🔥", "🐌", "🛡️"];
-      let type = types[Math.floor(Math.random() * types.length)];
-      powerups.push({ x: 800, y: 270, w: 30, h: 30, type });
+      const type = types[Math.floor(Math.random() * types.length)];
+      powerups.push({ x: 800, y: randomY('powerup'), w: 30, h: 30, type });
     }
 
     function update() {
@@ -69,7 +76,7 @@
       draw(mew, "🐱");
 
       for (let i = coins.length - 1; i >= 0; i--) {
-        let c = coins[i];
+        const c = coins[i];
         c.x -= speed * boost;
         draw(c, "🟡");
         if (c.x + c.w < 0) coins.splice(i, 1);
@@ -84,7 +91,7 @@
       }
 
       for (let i = toilets.length - 1; i >= 0; i--) {
-        let t = toilets[i];
+        const t = toilets[i];
         t.x -= speed * boost;
         draw(t, "🚽");
         if (t.x + t.w < 0) toilets.splice(i, 1);
@@ -93,7 +100,7 @@
             toilets.splice(i, 1);
             mew.shield = false;
           } else {
-            alert("💥 SKIBIDI GOT YOU!\nFinal Score: " + score);
+            alert("💥 You got Skibidi’d!\nFinal Score: " + score);
             resetGame();
             return;
           }
@@ -101,13 +108,15 @@
       }
 
       for (let i = powerups.length - 1; i >= 0; i--) {
-        let p = powerups[i];
+        const p = powerups[i];
         p.x -= speed * boost;
         draw(p, p.type);
         if (checkHit(p, mew)) {
           activatePowerup(p.type);
           powerups.splice(i, 1);
-        } else if (p.x + p.w < 0) powerups.splice(i, 1);
+        } else if (p.x + p.w < 0) {
+          powerups.splice(i, 1);
+        }
       }
 
       if (powerTime > 0) powerTime--;
@@ -140,7 +149,7 @@
       return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
     }
 
-    setInterval(() => update(), 30);
+    setInterval(update, 30);
     setInterval(spawnCoin, 1800);
     setInterval(spawnToilet, 3000);
     setInterval(spawnPowerup, 6000);
